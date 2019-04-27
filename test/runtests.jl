@@ -8,6 +8,19 @@ using UUIDs
 using IndirectImports
 using IndirectImports: IndirectFunction, IndirectPackage, isloaded
 
+macro test_thrown(ex)
+    quote
+        let err = nothing
+            try
+                $(esc(ex))
+            catch err
+            end
+            @test err isa Exception
+            err
+        end
+    end
+end
+
 module Upstream
     using IndirectImports: IndirectFunction
     using UUIDs
@@ -65,32 +78,21 @@ using _TestIndirectImportsUpstream
         IndirectPackage(Upstream),
     )
 
-    let err = nothing
-        try
-            @eval @indirect sin() = nothing
-        catch err
-        end
-        @test err isa Exception
+    let err = @test_thrown @eval @indirect sin() = nothing
         @test occursin(
             "Function name sin does not refer to an indirect function.",
             sprint(showerror, err))
     end
 
-    let err = nothing
-        try
-            @eval @indirect non_existing_function_name() = nothing
-        catch err
-        end
-        @test err isa Exception
+    let err = @test_thrown @eval @indirect non_existing_function_name() = nothing
     end
 
-    let err = nothing
-        try
-            @eval @indirect struct Spam end
-        catch err
-        end
-        @test err isa Exception
+    let err = @test_thrown @eval @indirect struct Spam end
         @test occursin("Cannot handle:", sprint(showerror, err))
+    end
+
+    let err = @test_thrown @eval @indirect import A=x, y
+        @test occursin("Unsupported import syntax:", sprint(showerror, err))
     end
 end
 

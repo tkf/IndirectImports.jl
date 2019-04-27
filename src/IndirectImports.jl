@@ -148,10 +148,11 @@ macro indirect(expr)
     if @capture(expr, import name_=rhs_)
         if isexpr(rhs, :tuple)
             if !@capture(rhs.args[1], uuid_:f_)
-                error("""
-                      Unsupported import syntax:
-                      $expr
-                      """)
+                msg = """
+                Unsupported import syntax:
+                $expr
+                """
+                return :(error($msg))
             end
             fs = rhs.args[2:end]
             pkg = IndirectPackage(UUID(uuid), name)
