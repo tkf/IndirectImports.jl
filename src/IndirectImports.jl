@@ -86,16 +86,18 @@ Typically, such function is an interface extended by downstream packages.
 
 To declare a function `fun` in a package `Upstream`,
 
-    module Upstream
+```julia
+module Upstream
     using IndirectImports
     @indirect function fun end
-    end
+end
+```
 
 ## Step 2: Add method definition in downstream packages
 
 First, find out the UUID of `Upstream` package by
 
-```
+```julia-repl
 julia> using Upstream
 
 julia> Base.PkgId(Upstream)
@@ -105,11 +107,13 @@ Upstream [332e404b-d707-4859-b48f-328b8b3632c0]
 Using this UUID, the `Upstream` package can be indirectly imported and
 methods for the indirect function `Upstream.fun` can be defined as follows:
 
-    module Downstream
+```julia
+module Downstream
     using IndirectImports
     @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0"
     @indirect Upstream.fun(x) = x + 1
-    end
+end
+```
 
 """
 macro indirect(expr)
