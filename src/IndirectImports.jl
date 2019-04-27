@@ -137,10 +137,11 @@ macro indirect(expr)
         dict[:name] = :(::$(typeof(f)))
         return MacroTools.combinedef(dict)
     else
-        error("""
+        msg = """
         Cannot handle:
         $expr
-        """)
+        """
+        return :(error($msg))
     end
 end
 

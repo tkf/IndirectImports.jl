@@ -47,6 +47,39 @@ using _TestIndirectImportsUpstream
     @test Downstream.dispatch(Upstream.fun) === :Upstream
     @test Downstream.dispatch(_TestIndirectImportsUpstream.fun) ===
         :_TestIndirectImportsUpstream
+
+    @test_throws(
+        ErrorException("Only the top-level module can be indirectly imported."),
+        IndirectPackage(Upstream),
+    )
+
+    let err = nothing
+        try
+            @eval @indirect sin() = nothing
+        catch err
+        end
+        @test err isa Exception
+        @test occursin(
+            "Function name sin does not refer to an indirect function.",
+            sprint(showerror, err))
+    end
+
+    let err = nothing
+        try
+            @eval @indirect non_existing_function_name() = nothing
+        catch err
+        end
+        @test err isa Exception
+    end
+
+    let err = nothing
+        try
+            @eval @indirect struct Spam end
+        catch err
+        end
+        @test err isa Exception
+        @test occursin("Cannot handle:", sprint(showerror, err))
+    end
 end
 
 @testset "Accessors" begin
