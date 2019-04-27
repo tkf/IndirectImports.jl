@@ -38,6 +38,7 @@ using _TestIndirectImportsUpstream
 @testset "Core" begin
     @test Upstream.fun(1) == 2
     @test Upstream.fun === Downstream.Upstream.fun
+    @test Val(Upstream.fun) isa Val{Upstream.fun}
 
     @test _TestIndirectImportsUpstream.fun(1) == 3
     @test _TestIndirectImportsUpstream.fun ===

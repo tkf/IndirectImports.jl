@@ -42,7 +42,9 @@ isloaded(pkg::IndirectPackage) = haskey(Base.loaded_modules, Base.PkgId(pkg))
 
 function Base.show(io::IO, f::IndirectFunction)
     # NOTE: BE VERY CAREFUL inside this function.  Throwing an
-    # exception inside this function can kill Julia.
+    # exception inside `show` for `Type` can kill Julia.  Since
+    # `IndirectFunction` can be put inside a `Val`, we need to be
+    # extra careful.
     # https://github.com/JuliaLang/julia/issues/29428
     try
         show(io, MIME("text/plain"), f)
