@@ -34,9 +34,18 @@ end
     @test PkgId(Test) === PkgId(IndirectPackage(Test))
 end
 
+struct Voldemort end
+Base.nameof(::Voldemort) = error("must not be named")
+
 @testset "Printing" begin
     @test repr(Upstream.fun) == "Upstream.fun"
     @test repr(IndirectPackage(Test).fun) == "Test.fun"
+
+    @testset "2-arg `show` MUST NOT fail" begin
+        # @show repr(IndirectFunction{Voldemort(), :fun})
+        @test match(r".*\bIndirectFunction\{.*Voldemort\(\), *:fun\}",
+                    repr(IndirectFunction{Voldemort(), :fun})) !== nothing
+    end
 
     # `Upstream` is a fake package so it's not loaded:
     pkg = Downstream.Upstream
