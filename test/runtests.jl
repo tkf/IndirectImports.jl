@@ -44,6 +44,9 @@ using _TestIndirectImportsUpstream
     @test _TestIndirectImportsUpstream.fun ===
         Downstream._TestIndirectImportsUpstream.fun
 
+    # A method defined in _TestIndirectImportsUpstream:
+    @test _TestIndirectImportsUpstream.fun(1im) == 1 + 2im
+
     @test Downstream.dispatch(Upstream.fun) === :Upstream
     @test Downstream.dispatch(_TestIndirectImportsUpstream.fun) ===
         :_TestIndirectImportsUpstream

@@ -86,12 +86,25 @@ at the top-level module.
 There must be a package that "declares" the ownership of an indirect function.
 Typically, such function is an interface extended by downstream packages.
 
-To declare a function `fun` in a package `Upstream`,
+To declare a function `fun` in a package `Upstream` wrap an empty
+definition of a function `function fun end` with `@indirect`:
 
 ```julia
 module Upstream
     using IndirectImports
     @indirect function fun end
+end
+```
+
+To define a method of an indirect function inside `Upstream` wrap it
+in `@indirect`:
+
+```julia
+module Upstream
+    using IndirectImports
+    @indirect function fun end
+
+    @indirect fun() = 0  # defining a method
 end
 ```
 
