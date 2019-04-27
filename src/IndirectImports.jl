@@ -146,6 +146,7 @@ versions.
 macro indirect(expr)
     expr = longdef(unblock(expr))
     if @capture(expr, import name_=rhs_)
+        qname = QuoteNode(name)
         if isexpr(rhs, :tuple)
             if !@capture(rhs.args[1], uuid_:f_)
                 msg = """
@@ -155,13 +156,13 @@ macro indirect(expr)
                 return :(error($msg))
             end
             fs = rhs.args[2:end]
-            pkg = IndirectPackage(UUID(uuid), name)
+            pkg = :($IndirectPackage($UUID($uuid), $qname))
             assignments = [:(const $g = $pkg.$g) for g in [f; fs]]
             return esc(Expr(:block, assignments...))
         elseif @capture(rhs, uuid_:f_)
-            return esc(:(const $f = $(IndirectPackage(UUID(uuid), name)).$f))
+            return esc(:(const $f = $IndirectPackage($UUID($uuid), $qname).$f))
         end
-        return esc(:(const $name = $(IndirectPackage(UUID(rhs), name))))
+        return esc(:(const $name = $IndirectPackage($UUID($rhs), $qname)))
     elseif @capture(expr, function name_ end)
         return esc(:(const $name = $(IndirectFunction(__module__, name))))
     elseif isexpr(expr, :function)
