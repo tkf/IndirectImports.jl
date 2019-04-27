@@ -10,15 +10,15 @@ using IndirectImports: IndirectFunction, IndirectPackage, isloaded
 module Upstream
     # using IndirectImports
     # @indirect function fun end
-    using IndirectImports: indirectfunction
+    using IndirectImports: IndirectFunction
     using UUIDs
-    const fun = indirectfunction(Base.PkgId(UUID("332e404b-d707-4859-b48f-328b8b3632c0"), "Upstream"), :fun)
+    const fun = IndirectFunction(Base.PkgId(UUID("332e404b-d707-4859-b48f-328b8b3632c0"), "Upstream"), :fun)
 end
 
 module Downstream
     using IndirectImports
     @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0"
-    Upstream.fun(x) = x + 1
+    @indirect Upstream.fun(x) = x + 1
 end
 
 @testset "Core" begin
@@ -36,15 +36,17 @@ end
 
 struct Voldemort end
 Base.nameof(::Voldemort) = error("must not be named")
+IndirectImports.IndirectPackage(pkg::Voldemort) = pkg
 
 @testset "Printing" begin
     @test repr(Upstream.fun) == "Upstream.fun"
     @test repr(IndirectPackage(Test).fun) == "Test.fun"
 
     @testset "2-arg `show` MUST NOT fail" begin
-        # @show repr(IndirectFunction{Voldemort(), :fun})
+        f = IndirectFunction(Voldemort(), :fun)
+        @debug "repr(f) = $(repr(f))"
         @test match(r".*\bIndirectFunction\{.*Voldemort\(\), *:fun\}",
-                    repr(IndirectFunction{Voldemort(), :fun})) !== nothing
+                    repr(f)) !== nothing
     end
 
     # `Upstream` is a fake package so it's not loaded:

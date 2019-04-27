@@ -11,6 +11,7 @@ end
 struct IndirectPackage{uuid, pkgname}
 end
 
+IndirectPackage(pkg::IndirectPackage) = pkg
 IndirectPackage(uuid::UUID, pkgname::Symbol) = IndirectPackage{uuid, pkgname}()
 IndirectPackage(pkg::Base.PkgId) = IndirectPackage(pkg.uuid, Symbol(pkg.name))
 
@@ -22,36 +23,36 @@ function IndirectPackage(mod::Module)
 end
 
 Base.getproperty(pkg::IndirectPackage, name::Symbol) =
-    IndirectFunction{pkg, name}
+    IndirectFunction(pkg, name)
 
-function indirectfunction(pkgish, name::Symbol)
-    return IndirectFunction{IndirectPackage(pkgish), name}
-end
+IndirectFunction(pkgish, name::Symbol) =
+    IndirectFunction{IndirectPackage(pkgish), name}()
 
-IndirectPackage(::Type{<:IndirectFunction{pkg}}) where pkg = pkg
-Base.nameof(::Type{IndirectFunction{_pkg, name}}) where {_pkg, name} = name
+
+IndirectPackage(::IndirectFunction{pkg}) where pkg = pkg
+Base.nameof(::IndirectFunction{_pkg, name}) where {_pkg, name} = name
 Base.nameof(::IndirectPackage{_uuid, pkgname}) where {_uuid, pkgname} = pkgname
 pkguuid(::IndirectPackage{uuid}) where uuid = uuid
 Base.PkgId(pkg::IndirectPackage) = Base.PkgId(pkguuid(pkg), String(nameof(pkg)))
 
-# Base.parentmodule(f::Type{<:IndirectFunction}) =
+# Base.parentmodule(f::IndirectFunction) =
 #     Base.loaded_modules[Base.PkgId(IndirectPackage(f))]
 
 isloaded(pkg::IndirectPackage) = haskey(Base.loaded_modules, Base.PkgId(pkg))
 
-function Base.show(io::IO, f::Type{<:IndirectFunction})
+function Base.show(io::IO, f::IndirectFunction)
     # NOTE: BE VERY CAREFUL inside this function.  Throwing an
     # exception inside this function can kill Julia.
     # https://github.com/JuliaLang/julia/issues/29428
     try
         show(io, MIME("text/plain"), f)
     catch
-        invoke(show, Tuple{IO, Type}, io, f)
+        invoke(show, Tuple{IO, Any}, io, f)
     end
     return
 end
 
-function Base.show(io::IO, ::MIME"text/plain", f::Type{<:IndirectFunction})
+function Base.show(io::IO, ::MIME"text/plain", f::IndirectFunction)
     pkg = IndirectPackage(f)
     printstyled(io, nameof(pkg);
                 color = isloaded(pkg) ? :green : :red)
@@ -63,19 +64,36 @@ end
 """
     @indirect import Module=UUID
 
-Define an indirectly imported `Module`.
+Define an indirectly imported `Module` in a downstream module.
+
+    @indirect function Module.interface_function(...) ... end
+
+Define a method of an indirectly imported function in a downstream module.
 
     @indirect function interface_function end
 
-Define an `interface_function` which can be used and extended in downstream
-packages (via `@indirect import Module=UUID`) without loading the package
-defining `interface_function`.
+Declare an `interface_function` in the upstream module.  This function can be
+used and/or extended in downstream packages (via `@indirect import Module=UUID`)
+without loading the package defining `interface_function`.
 """
 macro indirect(expr)
+    expr = longdef(unblock(expr))
     if @capture(expr, import name_=uuid_)
         return esc(:(const $name = $(IndirectPackage(UUID(uuid), name))))
     elseif @capture(expr, function name_ end)
-        return esc(:(const $name = $(indirectfunction(__module__, name))))
+        return esc(:(const $name = $(IndirectFunction(__module__, name))))
+    elseif isexpr(expr, :function)
+        dict = splitdef(expr)
+        f = Base.eval(__module__, dict[:name])
+        if !(f isa IndirectFunction)
+            msg = """
+            Function name $(dict[:name]) does not refer to an indirect function.
+            See `?@indirect`.
+            """
+            return :(error($msg))
+        end
+        dict[:name] = :(::$(typeof(f)))
+        return MacroTools.combinedef(dict)
     else
         error("""
         Cannot handle:
