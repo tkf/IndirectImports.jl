@@ -1,6 +1,7 @@
 module TestIndirectImports
 
 using Base: PkgId
+using Pkg
 using Test
 using UUIDs
 
@@ -8,8 +9,6 @@ using IndirectImports
 using IndirectImports: IndirectFunction, IndirectPackage, isloaded
 
 module Upstream
-    # using IndirectImports
-    # @indirect function fun end
     using IndirectImports: IndirectFunction
     using UUIDs
     const fun = IndirectFunction(Base.PkgId(UUID("332e404b-d707-4859-b48f-328b8b3632c0"), "Upstream"), :fun)
@@ -19,11 +18,27 @@ module Downstream
     using IndirectImports
     @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0"
     @indirect Upstream.fun(x) = x + 1
+
+    @indirect import _TestIndirectImportsUpstream="20db8cd4-68a4-11e9-2de0-29cd367489cf"
+    @indirect _TestIndirectImportsUpstream.fun(x) = x + 2
 end
+
+if Base.locate_package(PkgId(UUID("20db8cd4-68a4-11e9-2de0-29cd367489cf"),
+                             "_TestIndirectImportsUpstream")) === nothing
+    Pkg.develop(PackageSpec(
+        name = "_TestIndirectImportsUpstream",
+        path = joinpath(@__DIR__, "_TestIndirectImportsUpstream"),
+    ))
+end
+using _TestIndirectImportsUpstream
 
 @testset "Core" begin
     @test Upstream.fun(1) == 2
     @test Upstream.fun === Downstream.Upstream.fun
+
+    @test _TestIndirectImportsUpstream.fun(1) == 3
+    @test _TestIndirectImportsUpstream.fun ===
+        Downstream._TestIndirectImportsUpstream.fun
 end
 
 @testset "Accessors" begin

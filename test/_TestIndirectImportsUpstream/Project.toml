@@ -1,0 +1,7 @@
+name = "_TestIndirectImportsUpstream"
+uuid = "20db8cd4-68a4-11e9-2de0-29cd367489cf"
+authors = ["Takafumi Arakaki <aka.tkf@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+IndirectImports = "6b361b89-ad51-55af-b263-01d4c5e5a711"
