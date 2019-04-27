@@ -9,7 +9,6 @@ makedocs(;
     repo="https://github.com/tkf/IndirectImports.jl/blob/{commit}{path}#L{line}",
     sitename="IndirectImports.jl",
     authors="Takafumi Arakaki",
-    assets=[],
 )
 
 deploydocs(;
