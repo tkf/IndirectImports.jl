@@ -24,6 +24,11 @@ module Downstream
 
     dispatch(::typeof(Upstream.fun)) = :Upstream
     dispatch(::typeof(_TestIndirectImportsUpstream.fun)) = :_TestIndirectImportsUpstream
+
+    # Test other importing syntax:
+    @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0": f1
+    @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0": f2, f3
+    @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0": f4, f5, f6
 end
 
 if Base.locate_package(PkgId(UUID("20db8cd4-68a4-11e9-2de0-29cd367489cf"),
@@ -39,6 +44,10 @@ using _TestIndirectImportsUpstream
     @test Upstream.fun(1) == 2
     @test Upstream.fun === Downstream.Upstream.fun
     @test Val(Upstream.fun) isa Val{Upstream.fun}
+
+    @testset for name in [:f1, :f2, :f3, :f4, :f5, :f6]
+        @test getproperty(Downstream, name) === getproperty(Downstream.Upstream, name)
+    end
 
     @test _TestIndirectImportsUpstream.fun(1) == 3
     @test _TestIndirectImportsUpstream.fun ===

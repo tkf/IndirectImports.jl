@@ -68,6 +68,10 @@ end
 
 Define an indirectly imported `Module` in a downstream module.
 
+    @indirect import Module=UUID: f1, f2, ..., fn
+
+Import functions `f1`, `f2`, ..., `fn` indirectly to a downstream module.
+
     @indirect function Module.interface_function(...) ... end
 
 Define a method of an indirectly imported function in a downstream module.
@@ -141,8 +145,22 @@ versions.
 """
 macro indirect(expr)
     expr = longdef(unblock(expr))
-    if @capture(expr, import name_=uuid_)
-        return esc(:(const $name = $(IndirectPackage(UUID(uuid), name))))
+    if @capture(expr, import name_=rhs_)
+        if isexpr(rhs, :tuple)
+            if !@capture(rhs.args[1], uuid_:f_)
+                error("""
+                      Unsupported import syntax:
+                      $expr
+                      """)
+            end
+            fs = rhs.args[2:end]
+            pkg = IndirectPackage(UUID(uuid), name)
+            assignments = [:(const $g = $pkg.$g) for g in [f; fs]]
+            return esc(Expr(:block, assignments...))
+        elseif @capture(rhs, uuid_:f_)
+            return esc(:(const $f = $(IndirectPackage(UUID(uuid), name)).$f))
+        end
+        return esc(:(const $name = $(IndirectPackage(UUID(rhs), name))))
     elseif @capture(expr, function name_ end)
         return esc(:(const $name = $(IndirectFunction(__module__, name))))
     elseif isexpr(expr, :function)
