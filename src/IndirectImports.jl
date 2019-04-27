@@ -130,6 +130,14 @@ module Downstream
 end
 ```
 
+**Note**: It looks like defining a method works without `@indirect` possibly
+due to a "bug" in Julia [^1].  While it is handy to define methods without
+`@indirect` for debugging, prototyping, etc., it is a good idea to wrap the
+method definition in `@indirect` to be forward compatible with future Julia
+versions.
+
+[^1]: Extending a constructor is possible with only using `using`
+      <https://github.com/JuliaLang/julia/issues/25744>
 """
 macro indirect(expr)
     expr = longdef(unblock(expr))
