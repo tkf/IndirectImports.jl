@@ -74,7 +74,43 @@ Define a method of an indirectly imported function in a downstream module.
 
 Declare an `interface_function` in the upstream module.  This function can be
 used and/or extended in downstream packages (via `@indirect import Module=UUID`)
-without loading the package defining `interface_function`.
+without loading the package defining `interface_function`.  This works only
+at the top-level module.
+
+# Examples
+
+## Step 1: Declare indirect function in an upstream package
+
+There must be a package that "declares" the ownership of an indirect function.
+Typically, such function is an interface extended by downstream packages.
+
+To declare a function `fun` in a package `Upstream`,
+
+    module Upstream
+    using IndirectImports
+    @indirect function fun end
+    end
+
+## Step 2: Add method definition in downstream packages
+
+First, find out the UUID of `Upstream` package by
+
+```
+julia> using Upstream
+
+julia> Base.PkgId(Upstream)
+Upstream [332e404b-d707-4859-b48f-328b8b3632c0]
+```
+
+Using this UUID, the `Upstream` package can be indirectly imported and
+methods for the indirect function `Upstream.fun` can be defined as follows:
+
+    module Downstream
+    using IndirectImports
+    @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0"
+    @indirect Upstream.fun(x) = x + 1
+    end
+
 """
 macro indirect(expr)
     expr = longdef(unblock(expr))
