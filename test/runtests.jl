@@ -21,6 +21,9 @@ module Downstream
 
     @indirect import _TestIndirectImportsUpstream="20db8cd4-68a4-11e9-2de0-29cd367489cf"
     @indirect _TestIndirectImportsUpstream.fun(x) = x + 2
+
+    dispatch(::typeof(Upstream.fun)) = :Upstream
+    dispatch(::typeof(_TestIndirectImportsUpstream.fun)) = :_TestIndirectImportsUpstream
 end
 
 if Base.locate_package(PkgId(UUID("20db8cd4-68a4-11e9-2de0-29cd367489cf"),
@@ -39,6 +42,10 @@ using _TestIndirectImportsUpstream
     @test _TestIndirectImportsUpstream.fun(1) == 3
     @test _TestIndirectImportsUpstream.fun ===
         Downstream._TestIndirectImportsUpstream.fun
+
+    @test Downstream.dispatch(Upstream.fun) === :Upstream
+    @test Downstream.dispatch(_TestIndirectImportsUpstream.fun) ===
+        :_TestIndirectImportsUpstream
 end
 
 @testset "Accessors" begin
