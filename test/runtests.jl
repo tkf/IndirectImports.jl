@@ -1,6 +1,7 @@
 module TestIndirectImports
 
 using Base: PkgId
+using MacroTools
 using Pkg
 using Test
 using UUIDs
@@ -21,61 +22,49 @@ macro test_thrown(ex)
     end
 end
 
-module Upstream
-    using IndirectImports: IndirectFunction
-    using UUIDs
-    const fun = IndirectFunction(Base.PkgId(UUID("332e404b-d707-4859-b48f-328b8b3632c0"), "Upstream"), :fun)
+@testset "Macros" begin
+    @test isexpr((@eval @macroexpand @indirect import A), :const)
+    @test isexpr(unblock((@eval @macroexpand @indirect import A: x)), :let)
+    @test isexpr(unblock((@eval @macroexpand @indirect import A: x, y)), :let)
 end
 
-module Downstream
-    using IndirectImports
-    @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0"
-    @indirect Upstream.fun(x) = x + 1
-
-    @indirect import _TestIndirectImportsUpstream="20db8cd4-68a4-11e9-2de0-29cd367489cf"
-    @indirect _TestIndirectImportsUpstream.fun(x) = x + 2
-
-    dispatch(::typeof(Upstream.fun)) = :Upstream
-    dispatch(::typeof(_TestIndirectImportsUpstream.fun)) = :_TestIndirectImportsUpstream
-
-    # Test other importing syntax:
-    @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0": f1
-    @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0": f2, f3
-    @indirect import Upstream="332e404b-d707-4859-b48f-328b8b3632c0": f4, f5, f6
+function devtest(uuid, name)
+    if Base.locate_package(PkgId(UUID(uuid), name)) === nothing
+        Pkg.develop(PackageSpec(
+            name = name,
+            path = joinpath(@__DIR__, name),
+        ))
+    end
 end
 
-if Base.locate_package(PkgId(UUID("20db8cd4-68a4-11e9-2de0-29cd367489cf"),
-                             "_TestIndirectImportsUpstream")) === nothing
-    Pkg.develop(PackageSpec(
-        name = "_TestIndirectImportsUpstream",
-        path = joinpath(@__DIR__, "_TestIndirectImportsUpstream"),
-    ))
-end
+devtest("20db8cd4-68a4-11e9-2de0-29cd367489cf", "_TestIndirectImportsUpstream")
+devtest("63e77324-6b0a-11e9-11e4-8be33209e5fa", "_TestIndirectImportsDownstream")
 using _TestIndirectImportsUpstream
+using _TestIndirectImportsDownstream
+
+const Upstream = _TestIndirectImportsUpstream
+const Downstream = _TestIndirectImportsDownstream
+const Downstream_Upstream =
+    _TestIndirectImportsDownstream._TestIndirectImportsUpstream
 
 @testset "Core" begin
     @test Upstream.fun(1) == 2
-    @test Upstream.fun === Downstream.Upstream.fun
+    @test Upstream.fun === Downstream_Upstream.fun
     @test Val(Upstream.fun) isa Val{Upstream.fun}
 
     @testset for name in [:f1, :f2, :f3, :f4, :f5, :f6]
-        @test getproperty(Downstream, name) === getproperty(Downstream.Upstream, name)
+        @test getproperty(Downstream, name) === getproperty(Downstream_Upstream, name)
     end
 
-    @test _TestIndirectImportsUpstream.fun(1) == 3
-    @test _TestIndirectImportsUpstream.fun ===
-        Downstream._TestIndirectImportsUpstream.fun
+    # A method defined in Upstream:
+    @test Upstream.fun(1im) == 1 + 2im
 
-    # A method defined in _TestIndirectImportsUpstream:
-    @test _TestIndirectImportsUpstream.fun(1im) == 1 + 2im
-
-    @test Downstream.dispatch(Upstream.fun) === :Upstream
-    @test Downstream.dispatch(_TestIndirectImportsUpstream.fun) ===
-        :_TestIndirectImportsUpstream
+    @test Downstream.dispatch(Downstream_Upstream.fun) === :fun
+    @test Downstream.dispatch(Downstream_Upstream.fun2) === :fun2
 
     @test_throws(
         ErrorException("Only the top-level module can be indirectly imported."),
-        IndirectPackage(Upstream),
+        IndirectPackage(Module()),
     )
 
     let err = @test_thrown @eval @indirect sin() = nothing
@@ -92,14 +81,14 @@ using _TestIndirectImportsUpstream
     end
 
     let err = @test_thrown @eval @indirect import A=x, y
-        @test occursin("Unsupported import syntax:", sprint(showerror, err))
+        @test occursin("Cannot handle:", sprint(showerror, err))
     end
 end
 
 @testset "Accessors" begin
-    pkg = Downstream.Upstream
+    pkg = _TestIndirectImportsDownstream._TestIndirectImportsUpstream
     @test IndirectPackage(pkg.fun) === pkg
-    @test nameof(pkg) === :Upstream
+    @test nameof(pkg) === :_TestIndirectImportsUpstream
     @test nameof(pkg.fun) === :fun
     @test PkgId(Test) === PkgId(IndirectPackage(Test))
 end
@@ -109,7 +98,8 @@ Base.nameof(::Voldemort) = error("must not be named")
 IndirectImports.IndirectPackage(pkg::Voldemort) = pkg
 
 @testset "Printing" begin
-    @test repr(Upstream.fun) == "Upstream.fun"
+    upstreamname = "_TestIndirectImportsUpstream"
+    @test repr(Upstream.fun) == "$upstreamname.fun"
     @test repr(IndirectPackage(Test).fun) == "Test.fun"
 
     @testset "2-arg `show` MUST NOT fail" begin
@@ -119,11 +109,12 @@ IndirectImports.IndirectPackage(pkg::Voldemort) = pkg
                     repr(f)) !== nothing
     end
 
-    # `Upstream` is a fake package so it's not loaded:
-    pkg = Downstream.Upstream
+    # A fake package that is not loaded:
+    pkg = IndirectPackage(UUID("7f75c6e9-3b46-4b36-93ee-72f09c6fb1e2"),
+                          :NotLoaded)
     @test !isloaded(pkg)
-    @test sprint(show, Upstream.fun; context=:color=>true) ==
-        "\e[31mUpstream\e[39m.fun"  # `Upstream` in red
+    @test sprint(show, pkg.fun; context=:color=>true) ==
+        "\e[31mNotLoaded\e[39m.fun"  # `NotLoaded` in red
 
     # But `Test` is a genuine so it's loaded:
     @test isloaded(IndirectPackage(Test))
