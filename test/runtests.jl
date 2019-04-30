@@ -80,7 +80,7 @@ using _TestIndirectImportsUpstream
 
     let err = @test_thrown @eval @indirect sin() = nothing
         @test occursin(
-            "Function name sin does not refer to an indirect function.",
+            "Function name `sin` does not refer to an indirect function.",
             sprint(showerror, err))
     end
 

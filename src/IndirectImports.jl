@@ -67,7 +67,7 @@ function _typeof(f, name)
     @nospecialize f name
     if !(f isa IndirectFunction)
         msg = """
-        Function name $name does not refer to an indirect function.
+        Function name `$name` does not refer to an indirect function.
         See `?@indirect`.
         """
         return error(msg)
