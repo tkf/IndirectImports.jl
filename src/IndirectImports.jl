@@ -63,6 +63,18 @@ function Base.show(io::IO, ::MIME"text/plain", f::IndirectFunction)
     return
 end
 
+function _typeof(f, name)
+    @nospecialize f name
+    if !(f isa IndirectFunction)
+        msg = """
+        Function name $name does not refer to an indirect function.
+        See `?@indirect`.
+        """
+        return error(msg)
+    end
+    return typeof(f)
+end
+
 """
     @indirect import Module=UUID
 
@@ -167,16 +179,8 @@ macro indirect(expr)
         return esc(:(const $name = $(IndirectFunction(__module__, name))))
     elseif isexpr(expr, :function)
         dict = splitdef(expr)
-        f = Base.eval(__module__, dict[:name])
-        if !(f isa IndirectFunction)
-            msg = """
-            Function name $(dict[:name]) does not refer to an indirect function.
-            See `?@indirect`.
-            """
-            return :(error($msg))
-        end
-        dict[:name] = :(::$(typeof(f)))
-        return MacroTools.combinedef(dict)
+        dict[:name] = :(::($_typeof($(dict[:name]), $(QuoteNode(dict[:name])))))
+        return esc(MacroTools.combinedef(dict))
     else
         msg = """
         Cannot handle:
