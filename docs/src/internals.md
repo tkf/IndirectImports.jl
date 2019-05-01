@@ -1,6 +1,6 @@
-# IndirectImports.jl
+# Internals
 
 ```@autodocs
 Modules = [IndirectImports]
-Private = false
+Public = false
 ```

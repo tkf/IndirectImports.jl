@@ -6,9 +6,60 @@ using MacroTools
 using Pkg: TOML
 using UUIDs
 
+"""
+    IndirectFunction(pkgish::Union{Module,PkgId,IndirectPackage}, name::Symbol)
+
+# Examples
+```jldoctest
+julia> using IndirectImports: IndirectFunction, IndirectPackage
+
+julia> using UUIDs
+
+julia> Dummy = IndirectPackage(
+           UUID("f315346e-6bf8-11e9-0cba-43b0a27f0f55"),
+           :Dummy);
+
+julia> Dummy.fun
+Dummy.fun
+
+julia> Dummy.fun isa IndirectFunction
+true
+
+julia> Dummy.fun ===
+           IndirectFunction(Dummy, :fun) ===
+           IndirectFunction(
+               Base.PkgId(
+                   UUID("f315346e-6bf8-11e9-0cba-43b0a27f0f55"),
+                   "Dummy"),
+               :fun)
+true
+
+julia> IndirectPackage(Dummy.fun) === Dummy
+true
+```
+"""
 struct IndirectFunction{pkg, name}
 end
 
+"""
+    IndirectPackage(pkgish::Union{Module,PkgId,IndirectPackage})
+    IndirectPackage(uuid::UUID, pkgname::Symbol)
+
+# Examples
+```jldoctest
+julia> using IndirectImports: IndirectPackage
+
+julia> using Test
+
+julia> IndirectPackage(Test) ===
+           IndirectPackage(IndirectPackage(Base.PkgId(Test))) ===
+           IndirectPackage(Base.PkgId(Test)) ===
+           IndirectPackage(
+               Base.UUID("8dfed614-e22c-5e08-85e1-65c5234f0b40"),
+               :Test)
+true
+```
+"""
 struct IndirectPackage{uuid, pkgname}
 end
 
@@ -71,14 +122,28 @@ topmodule(m::Module) = parentmodule(m) == m ? m : topmodule(parentmodule(m))
 
 function _uuidfor(downstream::Module, upstream::Symbol)
     root = topmodule(downstream)
-    tomlpath = joinpath(dirname(dirname(pathof(root))), "Project.toml")
-    if !isfile(tomlpath)
+    srcjl = pathof(root)
+    if srcjl == nothing
         error("""
-        `IndirectImports` needs package `$(nameof(root))` to use `Project.toml`
-        file.  `Project.toml` is not found at:
-            $tomlpath
+        Module $downstream does not have associated source code file.
+        `@indirect import` can only be used inside a Julia package.
         """)
     end
+    projectpath = dirname(dirname(srcjl))
+    tomlpath_candidates = [
+        joinpath(projectpath, "Project.toml")
+        joinpath(projectpath, "JuliaProject.toml")
+    ]
+    idx = findfirst(isfile, tomlpath_candidates)
+    if idx === nothing
+        error("""
+        `IndirectImports` needs package `$(nameof(root))` to use `Project.toml`
+        file.  Project file is not found at:
+            $(tomlpath_candidates[1])
+            $(tomlpath_candidates[2])
+        """)
+    end
+    tomlpath = tomlpath_candidates[idx]
     name = String(upstream)
     pkg = TOML.parsefile(tomlpath)
     found = get(get(pkg, "deps", Dict()), name, false) ||
