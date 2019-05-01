@@ -8,7 +8,7 @@ using Test
 using UUIDs
 
 using IndirectImports
-using IndirectImports: IndirectFunction, IndirectPackage, isloaded
+using IndirectImports: IndirectFunction, IndirectPackage, isloaded, _uuidfor
 
 macro test_thrown(ex)
     quote
@@ -27,6 +27,12 @@ end
     @test isexpr((@eval @macroexpand @indirect import A), :const)
     @test isexpr(unblock((@eval @macroexpand @indirect import A: x)), :let)
     @test isexpr(unblock((@eval @macroexpand @indirect import A: x, y)), :let)
+
+    let err = @test_thrown _uuidfor(Main, :dummy)
+        @test occursin(
+            "does not have associated source code file",
+            sprint(showerror, err))
+    end
 end
 
 function devtest(uuid, name)
