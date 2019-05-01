@@ -1,6 +1,7 @@
 module TestIndirectImports
 
 using Base: PkgId
+using InteractiveUtils: code_llvm
 using MacroTools
 using Pkg
 using Test
@@ -120,6 +121,15 @@ IndirectImports.IndirectPackage(pkg::Voldemort) = pkg
     @test isloaded(IndirectPackage(Test))
     @test sprint(show, IndirectPackage(Test).fun; context=:color=>true) ==
         "\e[32mTest\e[39m.fun"  # `Test` in green
+end
+
+onetoten(config) = Upstream.reduceop(config, 0, 1:10)
+
+@testset "Code gen" begin
+    @test onetoten(Downstream.Config1()) == 55
+    @test onetoten(Downstream.Config2()) == -55
+    llvm = sprint(code_llvm, onetoten, Tuple{Downstream.Config1})
+    @test occursin(r"i(32|64) 55", llvm)
 end
 
 end  # module
