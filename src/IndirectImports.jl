@@ -311,6 +311,41 @@ versions.
 [^1]: Extending a constructor is possible with only using `using`
       <https://github.com/JuliaLang/julia/issues/25744>
 
+# Limitation
+
+Function declarations can be documented as usual
+
+```julia
+\"\"\"
+Docstring for `fun`.
+\"\"\"
+@indirect function fun end
+```
+
+but it does not work with the method definitions:
+
+```julia
+# Commenting out the following errors:
+
+# \"\"\"
+# Docstring for `fun`.
+# \"\"\"
+@indirect function fun()
+end
+```
+
+To add a docstring to indirect functions in downstream packages, one
+workaround is to use "off-site" docstring:
+
+```julia
+@indirect function fun() ... end
+
+\"\"\"
+Docstring for `fun`.
+\"\"\"
+fun
+```
+
 # How it works
 
 See <https://discourse.julialang.org/t/23526/38> for a simple
