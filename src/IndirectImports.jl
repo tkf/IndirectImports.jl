@@ -12,9 +12,18 @@ end
 struct IndirectPackage{uuid, pkgname}
 end
 
+Base.getproperty(pkg::IndirectPackage, name::Symbol) =
+    IndirectFunction(pkg, name)
+
+IndirectFunction(pkgish, name::Symbol) =
+    IndirectFunction{IndirectPackage(pkgish), name}()
+
 IndirectPackage(pkg::IndirectPackage) = pkg
 IndirectPackage(uuid::UUID, pkgname::Symbol) = IndirectPackage{uuid, pkgname}()
 IndirectPackage(pkg::Base.PkgId) = IndirectPackage(pkg.uuid, Symbol(pkg.name))
+
+
+@nospecialize
 
 function IndirectPackage(mod::Module)
     if parentmodule(mod) !== mod
@@ -22,12 +31,6 @@ function IndirectPackage(mod::Module)
     end
     return IndirectPackage(Base.PkgId(mod))
 end
-
-Base.getproperty(pkg::IndirectPackage, name::Symbol) =
-    IndirectFunction(pkg, name)
-
-IndirectFunction(pkgish, name::Symbol) =
-    IndirectFunction{IndirectPackage(pkgish), name}()
 
 
 IndirectPackage(::IndirectFunction{pkg}) where pkg = pkg
@@ -100,7 +103,6 @@ _indirectpackagefor(downstream::Module, upstream::Symbol) =
     IndirectPackage(_uuidfor(downstream, upstream), upstream)
 
 function _typeof(f, name)
-    @nospecialize f name
     if !(f isa IndirectFunction)
         msg = """
         Function name `$name` does not refer to an indirect function.
