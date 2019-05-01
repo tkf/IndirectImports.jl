@@ -20,7 +20,7 @@ julia> Dummy = IndirectPackage(
            :Dummy);
 
 julia> Dummy.fun
-Dummy.fun
+Dummy.funnnn
 
 julia> Dummy.fun isa IndirectFunction
 true
