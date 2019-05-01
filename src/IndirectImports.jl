@@ -112,30 +112,53 @@ function _typeof(f, name)
 end
 
 """
-    @indirect import Module
+```julia
+@indirect function interface_function end
+```
 
-Import a module `Module` indirectly.  This defines a constant named
-`Module` which acts like the module in a limited way.  Namely,
-`Module.f` can be used to extend or call function `f`, provided that
-`f` in the actual module `Module` is declared to be an "indirect
-function" (see below).
+Declare an `interface_function` in the upstream module (i.e., the
+module "owning" the function `interface_function`).  This function can
+be used and/or extended in downstream packages (via `@indirect import
+Module`) without loading the package defining `interface_function`.
+This from of `@indirect` works only at the top-level module.
 
-    @indirect import Module: f1, f2, ..., fn
+```julia
+@indirect function interface_function(...) ... end
+```
+
+Define a method of `interface_function` in the upstream module.  The
+function `interface_function` must be declared first by the above
+syntax.
+
+This can also be used in downstream modules provided that
+`interface_function` is imported by `@indirect import Module:
+interface_function` (see below).
+
+```julia
+@indirect import Module
+```
+
+Import an upstream module `Module` indirectly.  This defines a
+constant named `Module` which acts like the module in a limited way.
+Namely, `Module.f` can be used to extend or call function `f`,
+provided that `f` in the actual module `Module` is declared to be an
+"indirect function" (see above).
+
+```julia
+@indirect import Module: f1, f2, ..., fn
+```
 
 Import "indirect functions" `f1`, `f2`, ..., `fn`.  This defines
-constants `f1`, `f2`, ..., and `fn` that are extendable (see below)
+constants `f1`, `f2`, ..., and `fn` that are extendable (see above)
 and callable.
 
-    @indirect function Module.interface_function(...) ... end
+```julia
+@indirect function Module.interface_function(...) ... end
+```
 
-Define a method of an indirectly imported function in a downstream module.
-
-    @indirect function interface_function end
-
-Declare an `interface_function` in the upstream module.  This function can be
-used and/or extended in downstream packages (via `@indirect import Module`)
-without loading the package defining `interface_function`.  This works only
-at the top-level module.
+Define a method of an indirectly imported function.  This form can be
+usable only in downstream modules where `Module` is imported via
+`@indirect import Module`.
 
 # Examples
 
@@ -220,6 +243,12 @@ versions.
 
 [^1]: Extending a constructor is possible with only using `using`
       <https://github.com/JuliaLang/julia/issues/25744>
+
+# How it works
+
+See <https://discourse.julialang.org/t/23526/38> for a simple
+self-contained code to understanding the idea.  Note that the actual
+implementation is slightly different.
 """
 macro indirect(expr)
     expr = longdef(unblock(expr))
