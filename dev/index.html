@@ -18,4 +18,18 @@ Upstream = &quot;xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</code></pre><p><stro
     @indirect function Upstream.fun(x, y)
         return x + y
     end
-end</code></pre><p><strong>Note</strong>: It looks like defining a method works without <code>@indirect</code> possibly due to a &quot;bug&quot; in Julia <a href="#footnote-1">[1]</a>.  While it is handy to define methods without <code>@indirect</code> for debugging, prototyping, etc., it is a good idea to wrap the method definition in <code>@indirect</code> to be forward compatible with future Julia versions.</p><div class="footnote" id="footnote-1"><a href="#footnote-1"><strong>[1]</strong></a><p>Extending a constructor is possible with only using <code>using</code>   <a href="https://github.com/JuliaLang/julia/issues/25744">https://github.com/JuliaLang/julia/issues/25744</a></p></div><p><strong>How it works</strong></p><p>See <a href="https://discourse.julialang.org/t/23526/38">https://discourse.julialang.org/t/23526/38</a> for a simple self-contained code to understanding the idea.  Note that the actual implementation is slightly different.</p></div></div><a class="source-link" target="_blank" href="https://github.com/tkf/IndirectImports.jl/blob/8b9207323b45e9bbd7c4eec822d4bc89f8f9bb40/src/IndirectImports.jl#LL181-L319">source</a></section><footer><hr/><a class="next" href="internals/"><span class="direction">Next</span><span class="title">Internals</span></a></footer></article></body></html>
+end</code></pre><p><strong>Note</strong>: It looks like defining a method works without <code>@indirect</code> possibly due to a &quot;bug&quot; in Julia <a href="#footnote-1">[1]</a>.  While it is handy to define methods without <code>@indirect</code> for debugging, prototyping, etc., it is a good idea to wrap the method definition in <code>@indirect</code> to be forward compatible with future Julia versions.</p><div class="footnote" id="footnote-1"><a href="#footnote-1"><strong>[1]</strong></a><p>Extending a constructor is possible with only using <code>using</code>   <a href="https://github.com/JuliaLang/julia/issues/25744">https://github.com/JuliaLang/julia/issues/25744</a></p></div><p><strong>Limitation</strong></p><p>Function declarations can be documented as usual</p><pre><code class="language-julia">&quot;&quot;&quot;
+Docstring for `fun`.
+&quot;&quot;&quot;
+@indirect function fun end</code></pre><p>but it does not work with the method definitions:</p><pre><code class="language-julia"># Commenting out the following errors:
+
+# &quot;&quot;&quot;
+# Docstring for `fun`.
+# &quot;&quot;&quot;
+@indirect function fun()
+end</code></pre><p>To add a docstring to indirect functions in downstream packages, one workaround is to use &quot;off-site&quot; docstring:</p><pre><code class="language-julia">@indirect function fun() ... end
+
+&quot;&quot;&quot;
+Docstring for `fun`.
+&quot;&quot;&quot;
+fun</code></pre><p><strong>How it works</strong></p><p>See <a href="https://discourse.julialang.org/t/23526/38">https://discourse.julialang.org/t/23526/38</a> for a simple self-contained code to understanding the idea.  Note that the actual implementation is slightly different.</p></div></div><a class="source-link" target="_blank" href="https://github.com/tkf/IndirectImports.jl/blob/b93140030cb9cf4086e3d7161f3ee6d3a0540469/src/IndirectImports.jl#LL181-L354">source</a></section><footer><hr/><a class="next" href="internals/"><span class="direction">Next</span><span class="title">Internals</span></a></footer></article></body></html>
