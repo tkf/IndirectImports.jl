@@ -1,7 +1,7 @@
 name = "IndirectImports"
 uuid = "6b361b89-ad51-55af-b263-01d4c5e5a711"
 authors = ["Takafumi Arakaki <aka.tkf@gmail.com>"]
-version = "0.1.1"
+version = "0.1.2-DEV"
 
 [deps]
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
