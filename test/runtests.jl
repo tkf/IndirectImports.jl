@@ -46,8 +46,10 @@ end
 
 devtest("20db8cd4-68a4-11e9-2de0-29cd367489cf", "_TestIndirectImportsUpstream")
 devtest("63e77324-6b0a-11e9-11e4-8be33209e5fa", "_TestIndirectImportsDownstream")
+devtest("32ce5e6c-7227-11e9-3206-ad1ab32cb15a", "_TestIndirectImportsDownstream2")
 using _TestIndirectImportsUpstream
 using _TestIndirectImportsDownstream
+using _TestIndirectImportsDownstream2
 
 const Upstream = _TestIndirectImportsUpstream
 const Downstream = _TestIndirectImportsDownstream

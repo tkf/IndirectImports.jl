@@ -145,25 +145,30 @@ function _uuidfor(downstream::Module, upstream::Symbol)
         """)
     end
     tomlpath = tomlpath_candidates[idx]
-    name = String(upstream)
-    pkg = TOML.parsefile(tomlpath)
-    found = get(get(pkg, "deps", Dict()), name, false) ||
-        get(get(pkg, "extras", Dict()), name, nothing)
+    found = find_uuid_or(TOML.parsefile(tomlpath), String(upstream)) do
+        error("""
+Package `$upstream` is not listed in `[deps]` or `[extras]` of `Project.toml`
+file for `$(nameof(root))` found at:
+    $tomlpath
+If you are developing `$(nameof(root))`, add `$upstream` to the dependency.
+Otherwise, please report this to `$(nameof(root))`'s issue tracker.
+""")
+    end
 
     # Just to be extremely careful, editing Project.toml should
     # invalidate the compilation cache since the UUID may be changed
     # or removed:
     include_dependency(tomlpath)
 
-    found !== nothing && return UUID(found)
-    error("""
-    Package `$upstream` is not listed in `[deps]` or `[extras]` of `Project.toml`
-    file for `$(nameof(root))` found at:
-        $tomlpath
-    If you are developing `$(nameof(root))`, add `$upstream` to the dependency.
-    Otherwise, please report this to `$(nameof(root))`'s issue tracker.
-    """)
+    return UUID(found)
 end
+
+find_uuid_or(f, project::Dict, name::String) =
+    get(get(project, "deps", Dict()), name) do
+        get(get(project, "extras", Dict()), name) do
+            f()
+        end
+    end
 
 _indirectpackagefor(downstream::Module, upstream::Symbol) =
     IndirectPackage(_uuidfor(downstream, upstream), upstream)
