@@ -47,9 +47,13 @@ end
 devtest("20db8cd4-68a4-11e9-2de0-29cd367489cf", "_TestIndirectImportsUpstream")
 devtest("63e77324-6b0a-11e9-11e4-8be33209e5fa", "_TestIndirectImportsDownstream")
 devtest("32ce5e6c-7227-11e9-3206-ad1ab32cb15a", "_TestIndirectImportsDownstream2")
+devtest("f64c0b4a-788b-11e9-0aea-4d12ea983b28", "_TestIndirectImportsPong")
+devtest("f40e7e44-788b-11e9-0103-df8b12c08352", "_TestIndirectImportsPing")
 using _TestIndirectImportsUpstream
 using _TestIndirectImportsDownstream
 using _TestIndirectImportsDownstream2
+using _TestIndirectImportsPing
+using _TestIndirectImportsPong
 
 const Upstream = _TestIndirectImportsUpstream
 const Downstream = _TestIndirectImportsDownstream
@@ -100,6 +104,19 @@ end
     @test nameof(pkg) === :_TestIndirectImportsUpstream
     @test nameof(pkg.fun) === :fun
     @test PkgId(Test) === PkgId(IndirectPackage(Test))
+end
+
+@testset "Ping-Pong Fibonacci" begin
+    desired = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+    xs = 1:length(desired)
+    @test _TestIndirectImportsPing.ping === _TestIndirectImportsPong.ping
+    @test _TestIndirectImportsPing.pong === _TestIndirectImportsPong.pong
+    @testset for f in [
+        _TestIndirectImportsPing.ping
+        _TestIndirectImportsPong.pong
+    ]
+        @test f.(xs) == desired
+    end
 end
 
 struct Voldemort end

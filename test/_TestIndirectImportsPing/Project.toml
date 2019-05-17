@@ -1,0 +1,8 @@
+name = "_TestIndirectImportsPing"
+uuid = "f40e7e44-788b-11e9-0103-df8b12c08352"
+
+[deps]
+IndirectImports = "6b361b89-ad51-55af-b263-01d4c5e5a711"
+
+[extras]
+_TestIndirectImportsPong = "f64c0b4a-788b-11e9-0aea-4d12ea983b28"
