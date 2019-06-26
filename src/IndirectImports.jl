@@ -1,5 +1,7 @@
-@doc read(joinpath(dirname(@__DIR__), "README.md"), String) ->
 module IndirectImports
+
+# Use README as the docstring of the module:
+@doc read(joinpath(dirname(@__DIR__), "README.md"), String) IndirectImports
 
 export @indirect
 
